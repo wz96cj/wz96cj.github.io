@@ -1,0 +1,400 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/images/icons/favicon-16x16.png?v=2.0.1" type="image/png" sizes="16x16"><link rel="icon" href="/images/icons/favicon-32x32.png?v=2.0.1" type="image/png" sizes="32x32"><meta name="description" content="使用Kafka搭建在线消息中转服务">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka搭建在线消息中转服务">
+<meta property="og:url" content="http://wz96cj.github.io/2021/05/20/Kafka%E6%90%AD%E5%BB%BA%E5%9C%A8%E7%BA%BF%E6%B6%88%E6%81%AF%E4%B8%AD%E8%BD%AC%E6%9C%8D%E5%8A%A1/index.html">
+<meta property="og:site_name" content="耳东人夋">
+<meta property="og:description" content="使用Kafka搭建在线消息中转服务">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-8.png">
+<meta property="article:published_time" content="2021-05-20T10:00:00.000Z">
+<meta property="article:modified_time" content="2021-05-25T12:25:00.000Z">
+<meta property="article:author" content="Chen Jun">
+<meta property="article:tag" content="消息队列">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://wz96cj.github.io/images/pasted-8.png"><meta name="keywords" content="Chen Jun, 耳东人夋"><meta name="description" content="一个有趣的人"><title>Kafka搭建在线消息中转服务 | 耳东人夋</title><link ref="canonical" href="http://wz96cj.github.io/2021/05/20/Kafka%E6%90%AD%E5%BB%BA%E5%9C%A8%E7%BA%BF%E6%B6%88%E6%81%AF%E4%B8%AD%E8%BD%AC%E6%9C%8D%E5%8A%A1/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.0.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"dark","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: undefined,
+  lazyload: true,
+  pjax: {"avoidBanner":false},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 4.2.1"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">归档</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">分类</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">标签</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/introduction/"><span class="header-nav-menu-item__icon"><i class="fa fa-user-circle"></i></span><span class="header-nav-menu-item__text">关于</span></a></div></div><div class="header-nav-search"><span class="header-nav-search__icon"><i class="fas fa-search"></i></span><span class="header-nav-search__text">搜索</span></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">耳东人夋</div><div class="header-banner-info__subtitle">当一个问题包含一个前提条件的时候，通常答案就在于改变这个前提条件上</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div><!-- 判断是否启用aplayer--><!-- 播放器容器--><div class="aplayer" data-id="8059270200" data-server="tencent" data-type="playlist" data-fixed="true" data-order="list" data-preload="auto"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/meting@1.2.0/dist/Meting.min.js"></script></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Kafka搭建在线消息中转服务</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2021-05-20</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2021-05-25</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">2.2k</span></span></div></header><div class="post-body"><hr>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;最近需要做一个硬件设备消息中转服务，在初步估算消息的量和现有服务结构后，原先的rabbitMQ可能不太适合用来中转消息，选择吞吐量更高的Kafka作为消息队列。</p>
+<hr>
+<ul>
+<li>根据目前的服务结构，设计在线消息中转服务流程图<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-8.png"  alt="upload successful">
+      </li>
+</ul>
+<blockquote>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;目前服务分流在不同的服务器上，通过Kafka的分区可以实现管理多个服务，并互不影响；由于部分设备消息不可丢失，需要消息补发机制，为了避免后期频繁访问数据库，造成数据库访问压力，创建了2个通道分别去管理设备消息的缓存转发与存储，设备消息的中转与补发相关操作都可以直接访问缓存数据，设备消息的存储操作单独开一个消息通道进行处理，这样做的好处就是防止重启等操作丢失消息，减少了设备消息丢失的概率，同时也保证了消息的一致性。</p>
+</blockquote>
+<p><strong>一. docker搭建Kafka和zookeeper环境(教程较多，这里就不再具体描述)<br></strong><br><strong>二. Kafka生产者以及消费者的创建</strong></p>
+<ul>
+<li>生产者的创建</li>
+</ul>
+<figure class="highlight go"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	<span class="comment">// kafka生产者发送信息方式</span></span><br><span class="line">	Sync  = <span class="string">"Sync"</span></span><br><span class="line">	Async = <span class="string">"Async"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> Producer AbsKafkaProducer</span><br><span class="line"></span><br><span class="line"><span class="comment">// AbsKafkaProducer 抽象生产者接口</span></span><br><span class="line"><span class="keyword">type</span> AbsKafkaProducer <span class="keyword">interface</span> &#123;</span><br><span class="line">	NewKafkaProducer(address, topic <span class="keyword">string</span>, duration time.Duration) error</span><br><span class="line">	Send(value []<span class="keyword">byte</span>, partitionNumber <span class="keyword">int32</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// SyncKafkaProducer 同步kafka生产者</span></span><br><span class="line"><span class="keyword">type</span> SyncKafkaProducer <span class="keyword">struct</span> &#123;</span><br><span class="line">	Producer    sarama.SyncProducer <span class="comment">//同步生产者</span></span><br><span class="line">	KafkaConfig *KafkaConfig</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AsyncKafkaProducer kafka异步生产者</span></span><br><span class="line"><span class="keyword">type</span> AsyncKafkaProducer <span class="keyword">struct</span> &#123;</span><br><span class="line">	KafkaConfig *KafkaConfig         <span class="comment">//共有的kafka生产者配置在这个里面</span></span><br><span class="line">	Producer    sarama.AsyncProducer <span class="comment">//异步生产者</span></span><br><span class="line">	IsClose     <span class="keyword">chan</span> error           <span class="comment">// 监听producer是否可以关闭</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// KafkaConfig kafka生产者</span></span><br><span class="line"><span class="keyword">type</span> KafkaConfig <span class="keyword">struct</span> &#123;</span><br><span class="line">	AddressList []<span class="keyword">string</span>       <span class="comment">//地址列表</span></span><br><span class="line">	Topic       <span class="keyword">string</span>         <span class="comment">//kafka topic</span></span><br><span class="line">	Config      *sarama.Config <span class="comment">//kafka配置信息</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//NewProducer 创建生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProducer</span><span class="params">(address, topic <span class="keyword">string</span>, duration time.Duration, syncOrAsync <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> address == <span class="string">""</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"broker地址未定义"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> topic == <span class="string">""</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"topic不能为空"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> producer AbsKafkaProducer</span><br><span class="line">	<span class="keyword">switch</span> syncOrAsync &#123;</span><br><span class="line">	<span class="keyword">case</span> Sync:</span><br><span class="line">		producer = &amp;SyncKafkaProducer&#123;&#125;</span><br><span class="line">		soelog.Logger.Info(fmt.Sprintf(<span class="string">"开始创建同步生产者,topic名称:%s"</span>, topic))</span><br><span class="line">	<span class="keyword">case</span> Async:</span><br><span class="line">		producer = &amp;AsyncKafkaProducer&#123;&#125;</span><br><span class="line">		soelog.Logger.Info(fmt.Sprintf(<span class="string">"开始创建异步生产者,topic名称:%s"</span>, topic))</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"未定义生产者类型"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	err := producer.NewKafkaProducer(address, topic, duration)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	Producer = producer</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewProducerByMessage 创建kafka基本生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProducerByMessage</span><span class="params">(address, topic <span class="keyword">string</span>, duration time.Duration)</span> <span class="params">(*KafkaConfig, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">//根据字符串解析地址列表</span></span><br><span class="line">	addressList := strings.Split(address, <span class="string">","</span>)</span><br><span class="line">	<span class="comment">//配置producer参数</span></span><br><span class="line">	config := sarama.NewConfig()</span><br><span class="line">	<span class="comment">//等待服务器所有副本都保存成功后的响应</span></span><br><span class="line">	config.Producer.RequiredAcks = sarama.WaitForAll</span><br><span class="line">	<span class="comment">//随机向partition发送消息  NewRoundRobinPartitioner轮询策略(顺序分配),NewRandomPartitioner随机策略, NewManualPartitioner</span></span><br><span class="line">	config.Producer.Partitioner = sarama.NewManualPartitioner</span><br><span class="line">	<span class="comment">//是否等待成功和失败后的响应,只有上面的RequireAcks设置不是NoReponse这里才有用,设置为true后,必须从通道中读取,否则会阻塞</span></span><br><span class="line">	config.Producer.Return.Successes = <span class="literal">true</span></span><br><span class="line">	config.Producer.Return.Errors = <span class="literal">true</span></span><br><span class="line">	<span class="comment">//注意，版本设置不对的话，kafka会返回很奇怪的错误，并且无法成功发送消息</span></span><br><span class="line">	config.Version = sarama.V2_0_0_0</span><br><span class="line">	config.Producer.Timeout = duration</span><br><span class="line">	<span class="keyword">if</span> config.Producer.Timeout == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">//默认5S</span></span><br><span class="line">		config.Producer.Timeout = time.Second * <span class="number">5</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;KafkaConfig&#123;</span><br><span class="line">		AddressList: addressList,</span><br><span class="line">		Topic:       topic,</span><br><span class="line">		Config:      config,</span><br><span class="line">	&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(k *SyncKafkaProducer)</span> <span class="title">NewKafkaProducer</span><span class="params">(address, topic <span class="keyword">string</span>, duration time.Duration)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	k.KafkaConfig, err = NewProducerByMessage(address, topic, duration)</span><br><span class="line">	k.Run()</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Run kafka异步生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(k *SyncKafkaProducer)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> k == <span class="literal">nil</span> || k.KafkaConfig == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//创建异步producer</span></span><br><span class="line">	producer, err := sarama.NewSyncProducer(k.KafkaConfig.AddressList, k.KafkaConfig.Config)</span><br><span class="line">	<span class="comment">//如果创建失败主动置空k.producer，否则producer不为空，在重启的时候k.producer是会有值的</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		k.Producer = <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> producer == <span class="literal">nil</span> &#123;</span><br><span class="line">		k.Producer = <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	k.Producer = producer</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//同步生产者发送消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(k *SyncKafkaProducer)</span> <span class="title">Send</span><span class="params">(value []<span class="keyword">byte</span>, partitionNumber <span class="keyword">int32</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> k == <span class="literal">nil</span> || k.KafkaConfig == <span class="literal">nil</span> || value == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	msg := &amp;sarama.ProducerMessage&#123;</span><br><span class="line">		Topic: k.KafkaConfig.Topic,</span><br><span class="line">		Value: sarama.ByteEncoder(value),</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> k.Producer == <span class="literal">nil</span> &#123;</span><br><span class="line">		k.Run()</span><br><span class="line">		<span class="keyword">if</span> k.Producer == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	_, _, err := k.Producer.SendMessage(msg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">//重连生产者</span></span><br><span class="line">		<span class="keyword">if</span> k.Producer != <span class="literal">nil</span> &#123;</span><br><span class="line">			k.Producer.Close()</span><br><span class="line">		&#125;</span><br><span class="line">		k.Run()</span><br><span class="line">		<span class="comment">//TODO 是否需要重发</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewKafkaProducer 创建kafka异步生产者实例，并初始化参数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(k *AsyncKafkaProducer)</span> <span class="title">NewKafkaProducer</span><span class="params">(address, topic <span class="keyword">string</span>, duration time.Duration)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="comment">//配置异步producer启动参数</span></span><br><span class="line">	k.IsClose = <span class="built_in">make</span>(<span class="keyword">chan</span> error, <span class="number">2</span>)</span><br><span class="line">	k.KafkaConfig, err = NewProducerByMessage(address, topic, duration)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//启动kafka异步producer</span></span><br><span class="line">	k.Run()</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Send kafka异步发送消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(k *AsyncKafkaProducer)</span> <span class="title">Send</span><span class="params">(value []<span class="keyword">byte</span>, partitionNumber <span class="keyword">int32</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">//如果实例或者配置为空，直接返回。如果发送数据为空也直接返回</span></span><br><span class="line">	<span class="keyword">if</span> k == <span class="literal">nil</span> || k.KafkaConfig == <span class="literal">nil</span> || value == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 封装消息实例,未指定分区,按照默认分区策略发送</span></span><br><span class="line">	msg := &amp;sarama.ProducerMessage&#123;</span><br><span class="line">		Topic: k.KafkaConfig.Topic,</span><br><span class="line">		Value: sarama.ByteEncoder(value),</span><br><span class="line">		<span class="comment">//config.Producer.Partitioner 设置为NewManualPartitioner才可生效</span></span><br><span class="line">		Partition: partitionNumber,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//这里一般不会出现，producer实例为空时，表示创建异步producer失败</span></span><br><span class="line">	<span class="keyword">if</span> k.Producer == <span class="literal">nil</span> &#123;</span><br><span class="line">		k.Run()</span><br><span class="line">		<span class="keyword">if</span> k.Producer == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="comment">//producer 出现error需要重新启动</span></span><br><span class="line">	<span class="keyword">case</span> &lt;-k.IsClose:</span><br><span class="line">		<span class="keyword">if</span> k.Producer != <span class="literal">nil</span> &#123;</span><br><span class="line">			k.Producer.Close()</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//重新连接生产者</span></span><br><span class="line">		k.Run()</span><br><span class="line">		<span class="comment">//TODO 直接返回，此条消息浪费掉了，看后期是否需要重新发送失败信息</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// 正常情况发送消息</span></span><br><span class="line">		k.Producer.Input() &lt;- msg</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建异步生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(k *AsyncKafkaProducer)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> k == <span class="literal">nil</span> || k.KafkaConfig == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//创建异步producer</span></span><br><span class="line">	producer, err := sarama.NewAsyncProducer(k.KafkaConfig.AddressList, k.KafkaConfig.Config)</span><br><span class="line">	<span class="comment">//如果创建失败主动置空k.producer，否则producer不为空，在重启的时候k.producer是会有值的</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(fmt.Sprintf(<span class="string">"创建生产者失败:%s"</span>, err.Error()))</span><br><span class="line">		k.Producer = <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> producer == <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(fmt.Sprintf(<span class="string">"创建生产者失败"</span>))</span><br><span class="line">		k.Producer = <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	k.Producer = producer</span><br><span class="line">	<span class="comment">//必须开启 config.Producer.Return才能进入</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(p sarama.AsyncProducer)</span></span> &#123;</span><br><span class="line">		errors := p.Errors()</span><br><span class="line">		success := p.Successes()</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="comment">//出现了错误</span></span><br><span class="line">			<span class="keyword">case</span> rc := &lt;-errors:</span><br><span class="line">				<span class="keyword">if</span> rc != <span class="literal">nil</span> &#123;</span><br><span class="line">					k.IsClose &lt;- fmt.Errorf(<span class="string">"send kafka data error"</span>)</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			<span class="keyword">case</span> res := &lt;-success:</span><br><span class="line">				data, _ := res.Value.Encode()</span><br><span class="line">				fmt.Printf(<span class="string">"发送成功，value=%s \n"</span>, <span class="keyword">string</span>(data))</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;(producer)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+
+<ul>
+<li>消费者的创建</li>
+</ul>
+<figure class="highlight go"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//自定义策略</span></span><br><span class="line"><span class="keyword">type</span> StickyBalancer <span class="keyword">struct</span> &#123;</span><br><span class="line">	topic <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *StickyBalancer)</span> <span class="title">Name</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> c.topic</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*指定监听topic的某个分区 */</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *StickyBalancer)</span> <span class="title">Plan</span><span class="params">(members <span class="keyword">map</span>[<span class="keyword">string</span>]sarama.ConsumerGroupMemberMetadata, topics <span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">int32</span>)</span> <span class="params">(sarama.BalanceStrategyPlan, error)</span></span> &#123;</span><br><span class="line">	plan := <span class="built_in">make</span>(sarama.BalanceStrategyPlan, <span class="built_in">len</span>(members))</span><br><span class="line">	<span class="keyword">for</span> memberID, metadataWithPartitionInfo := <span class="keyword">range</span> members &#123;</span><br><span class="line">		planResult := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">int32</span>)</span><br><span class="line">		planResult[c.topic] = <span class="built_in">append</span>(planResult[c.topic], <span class="keyword">int32</span>(metadataWithPartitionInfo.UserData[<span class="number">0</span>]))</span><br><span class="line">		plan[memberID] = planResult</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> plan, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewBindConsumer</span><span class="params">(groupID <span class="keyword">string</span>, topics []<span class="keyword">string</span>, partitions <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 先初始化 kafka</span></span><br><span class="line">	config := sarama.NewConfig()</span><br><span class="line">	config.Version = sarama.V2_0_0_0</span><br><span class="line">	config.Consumer.Return.Errors = <span class="literal">true</span></span><br><span class="line">	<span class="comment">//指定监听某个分区</span></span><br><span class="line">	config.Consumer.Group.Rebalance.Strategy = &amp;StickyBalancer&#123;topic: topics[<span class="number">0</span>]&#125;</span><br><span class="line">	config.Consumer.Group.Member.UserData = []<span class="keyword">byte</span>&#123;<span class="keyword">byte</span>(partitions)&#125;</span><br><span class="line">	<span class="comment">// 开始连接kafka服务器</span></span><br><span class="line">	group, err := sarama.NewConsumerGroup([]<span class="keyword">string</span>&#123;setting.JsonConfig.Kafka.Server&#125;, groupID, config)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(fmt.Sprintf(<span class="string">"connect kafka failed:%s"</span>, err.Error()))</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> group.Close()</span><br><span class="line">	<span class="comment">//防止协程泄露</span></span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> err := <span class="keyword">range</span> group.Errors() &#123;</span><br><span class="line">			soelog.Logger.Error(fmt.Sprintf(<span class="string">"kafka group errors :%s "</span>, err.Error()))</span><br><span class="line">			<span class="keyword">if</span> strings.Contains(err.Error(), <span class="string">"The requested offset is outside the range of offsets maintained by the server for the given topic/partition"</span>) &#123;</span><br><span class="line">				done &lt;- <span class="literal">true</span></span><br><span class="line">				<span class="keyword">go</span> NewBindConsumer(groupID, topics)</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		ctx := context.Background()</span><br><span class="line">		soelog.Logger.Info(fmt.Sprintf(<span class="string">"创建kafka消费者组:%s,topic:%v"</span>, groupID, topics))</span><br><span class="line">		<span class="comment">// 需要监听的主题</span></span><br><span class="line">		handler := ConsumerGroupHandler&#123;&#125;</span><br><span class="line">		<span class="comment">// 启动kafka消费组模式，消费的逻辑在上面的 ConsumeClaim 这个方法里</span></span><br><span class="line">		err = group.Consume(ctx, topics, handler)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			soelog.Logger.Error(fmt.Sprintf(<span class="string">"消费者连接失败:%s "</span>, err.Error()))</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> ok := &lt;-done:</span><br><span class="line">			<span class="keyword">if</span> ok &#123;</span><br><span class="line">				soelog.Logger.Info(<span class="string">"Kafka 消费者重连中"</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//重写 setup,cleanup,consumeClaim 方法</span></span><br><span class="line"><span class="keyword">type</span> ConsumerGroupHandler <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ConsumerGroupHandler)</span> <span class="title">Setup</span><span class="params">(_ sarama.ConsumerGroupSession)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ConsumerGroupHandler)</span> <span class="title">Cleanup</span><span class="params">(_ sarama.ConsumerGroupSession)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 这个方法用来消费消息的</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h ConsumerGroupHandler)</span> <span class="title">ConsumeClaim</span><span class="params">(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 获取消息</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> msg := &lt;-claim.Messages():</span><br><span class="line">			<span class="keyword">if</span> msg != <span class="literal">nil</span> &#123;</span><br><span class="line">				log.Printf(<span class="string">"消息下标:%d,消息内容:%s,分区:%d,topic通道:%s"</span>, msg.Offset, <span class="keyword">string</span>(msg.Value), msg.Partition, msg.Topic)</span><br><span class="line">				<span class="comment">//TODO 业务处理</span></span><br><span class="line">				<span class="comment">//只有提交了消息位移,消息才能被消费</span></span><br><span class="line">			  sess.MarkMessage(msg, <span class="string">"modified metadata"</span>)</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+
+<p><strong>三.Redis监听器（消息补发）</strong></p>
+<figure class="highlight go"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">//ReissueMessageLogTask 补发定时任务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReissueMessageLogTask</span><span class="params">()</span></span> &#123;</span><br><span class="line">	conn := specialdb.Redis.Pool.Get()</span><br><span class="line">	conn.Do(<span class="string">"CONFIG"</span>, <span class="string">"SET"</span>, <span class="string">"notify-keyspace-events"</span>, <span class="string">"KEx"</span>)</span><br><span class="line">	psc := redis.PubSubConn&#123;Conn: conn&#125;</span><br><span class="line">	psc.PSubscribe(<span class="string">"__keyspace@0__:"</span> + MessagerCache + <span class="string">"*"</span>)</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">switch</span> msg := psc.Receive().(<span class="keyword">type</span>) &#123;</span><br><span class="line">		<span class="keyword">case</span> redis.Message:</span><br><span class="line">			<span class="comment">//监听过期key</span></span><br><span class="line">			messageType := <span class="keyword">string</span>(msg.Data)</span><br><span class="line">			<span class="keyword">if</span> messageType == <span class="string">"expired"</span> &#123;</span><br><span class="line">				arr := strings.Split(msg.Channel, <span class="string">":"</span>)</span><br><span class="line">				length := <span class="built_in">len</span>(arr)</span><br><span class="line">				<span class="keyword">if</span> length &gt; <span class="number">0</span> &#123;</span><br><span class="line">					tenantID := arr[length<span class="number">-4</span>]</span><br><span class="line">					uid := arr[length<span class="number">-1</span>]</span><br><span class="line">					<span class="comment">// TODO 查询消息是否确认,补发消息</span></span><br><span class="line">					</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> redis.Subscription:</span><br><span class="line">			soelog.Logger.Info(fmt.Sprintf(<span class="string">"开始监听redis过期key,消息类型:%s,消息pattern:%s"</span>, msg.Kind, msg.Channel))</span><br><span class="line">			<span class="keyword">if</span> msg.Count == <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> error:</span><br><span class="line">			soelog.Logger.Error(fmt.Sprintf(<span class="string">"error: %v\n"</span>, msg))</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure></div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="http://wz96cj.github.io/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/">消息队列</a></span><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="http://wz96cj.github.io/tags/Redis/">Redis</a></span></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2021/06/15/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">策略模式</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2021/04/25/K8S-%E5%9F%BA%E7%A1%80/"><span class="paginator-prev__text">K8S-基础</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav><!-- 判断是否启用aplayer--><!-- 播放器容器--><div class="aplayer" data-id="8059270200" data-server="theme.aplayer.server" data-type="theme.aplayer.type" data-fixed="theme.aplayer.fixed" data-order="theme.aplayer.order" data-preload="theme.aplayer.preload"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/meting@1.2.0/dist/Meting.min.js"></script></footer></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC81Mjc4Ny8yOTI2NA=="></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/images/icons/stun-logo.svg" alt="avatar"></div><p class="sidebar-ov-author__text">努力搬砖中 (快速切换文章 CTRL+→/←)</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/wz96cj" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="http://img.wz96cj.top/WXcode.jpg" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="http://img.wz96cj.top/QQcode.jpg" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">31</div><div class="sidebar-ov-state-item__name">归档</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">11</div><div class="sidebar-ov-state-item__name">分类</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">20</div><div class="sidebar-ov-state-item__name">标签</div></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2024</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span>Chen Jun</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon" data-popover-pos="up" data-popover="访问人数"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon" data-popover-pos="up" data-popover="浏览总量"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div><div><div> <a target="_blank" href="http://beian.miit.gov.cn" style="color:#f5f6f7"  rel="nofollow">浙ICP备20023281号</a></div></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><div class="search-mask"></div><div class="search-popup"><span class="search-close"></span><div class="search-input"><input placeholder="搜索文章（支持多关键词，请用空格分隔）"></div><div class="search-results"></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/canvas-nest.js@1.0.1/dist/canvas-nest.min.js" color="0,0,0" opacity="0.6" count="99" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script>function initSearch() {
+  var isXML = true;
+  var search_path = 'search.xml';
+
+  if (!search_path) {
+    search_path = 'search.xml';
+  } else if (/json$/i.test(search_path)) {
+    isXML = false;
+  }
+
+  var path = '/' + search_path;
+  $.ajax({
+    url: path,
+    dataType: isXML ? 'xml' : 'json',
+    async: true,
+    success: function (res) {
+      var datas = isXML ? $('entry', res).map(function () {
+        // 将 XML 转为 JSON
+        return {
+          title: $('title', this).text(),
+          content: $('content', this).text(),
+          url: $('url', this).text()
+        };
+      }).get() : res;
+      var $input = $('.search-input input');
+      var $result = $('.search-results');
+      // 搜索对象（标题、内容）的权重，影响显示顺序
+      var WEIGHT = { title: 100, content: 1 };
+      var searchPost = function () {
+        var searchText = $input.val().toLowerCase().trim();
+        // 根据空白字符分隔关键字
+        var keywords = searchText.split(/[\s]+/);
+        // 搜索结果
+        var matchPosts = [];
+
+        // 有多个关键字时，将原文字整个保存下来
+        if (keywords.length > 1) {
+          keywords.push(searchText);
+        }
+        // 防止未输入字符时搜索
+        if (searchText.length > 0) {
+          datas.forEach(function (data) {
+            var isMatch  = false;
+            // 没有标题的文章使用预设的 i18n 变量代替
+            var title = (data.title && data.title.trim()) || '[ 文章无标题 ]';
+            var titleLower = title && title.toLowerCase();
+            // 删除 HTML 标签 和 所有空白字符
+            var content = data.content && data.content.replace(/<[^>]+>/g, '');
+            var contentLower = content && content.toLowerCase();
+            // 删除重复的 /
+            var postURL = data.url && decodeURI(data.url).replace(/\/{2,}/g, '/');
+            // 标题中匹配到的关键词
+            var titleHitSlice = [];
+            // 内容中匹配到的关键词
+            var contentHitSlice = [];
+
+            keywords.forEach(function (keyword) {
+              /**
+              * 获取匹配的关键词的索引
+              * @param {String} keyword 要匹配的关键字
+              * @param {String} text 原文字
+              * @param {Boolean} caseSensitive 是否区分大小写
+              * @param {Number} weight 匹配对象的权重。权重大的优先显示
+              * @return {Array}
+              */
+              function getIndexByword (word, text, caseSensitive, weight) {
+                if (!word || !text) {
+                  return [];
+                };
+
+                var startIndex = 0; // 每次匹配的开始索引
+                var index = -1;     // 匹配到的索引值
+                var result = [];    // 匹配结果
+
+                if (!caseSensitive) {
+                  word = word.toLowerCase();
+                  text = text.toLowerCase();
+                }
+
+                while((index = text.indexOf(word, startIndex)) !== -1) {
+                  var hasMatch = false;
+                  // 索引位置相同的关键词，保留长度较长的
+                  titleHitSlice.forEach(function (hit) {
+                    if (hit.index === index && hit.word.length < word.length) {
+                      hit.word = word;
+                      hasMatch = true;
+                    }
+                  });
+                  startIndex = index + word.length;
+                  !hasMatch && result.push({ index: index, word: word, weight: weight });
+                }
+                return result;
+              }
+              titleHitSlice = titleHitSlice.concat(getIndexByword(keyword, titleLower, false, WEIGHT.title));
+              contentHitSlice = contentHitSlice.concat(getIndexByword(keyword, contentLower, false, WEIGHT.content));
+            });
+
+            var hitTitle = titleHitSlice.length;
+            var hitContent = contentHitSlice.length;
+
+            if (hitTitle > 0 || hitContent > 0) {
+              isMatch = true;
+            }
+            if (isMatch) {
+              ;[titleHitSlice, contentHitSlice].forEach(function (hit) {
+                // 按照匹配文字的索引的递增顺序排序
+                hit.sort(function (left, right) {
+                  return left.index - right.index;
+                });
+              });
+              /**
+              * 给文本中匹配到的关键词添加标记，从而进行高亮显示
+              * @param {String} text 原文本
+              * @param {Array} hitSlice 匹配项的索引信息
+              * @param {Number} start 开始索引
+              * @param {Number} end 结束索引
+              * @return {String}
+              */
+              function highlightKeyword (text, hitSlice, start, end) {
+                if (!text || !hitSlice || !hitSlice.length) {
+                  return;
+                }
+
+                var result = '';
+                var startIndex = start;
+                var endIndex = end;
+                hitSlice.forEach(function (hit) {
+                  if (hit.index < startIndex) {
+                    return;
+                  }
+
+                  var hitWordEnd = hit.index + hit.word.length;
+                  result += text.slice(startIndex, hit.index);
+                  result += '<b>' + text.slice(hit.index, hitWordEnd) + '</b>';
+                  startIndex = hitWordEnd;
+                });
+                result += text.slice(startIndex, endIndex);
+                return result;
+              }
+
+              var postData = {};
+              // 文章总的搜索权重
+              var postWeight = titleHitSlice.length * WEIGHT.title + contentHitSlice.length * WEIGHT.content;
+              // 标记匹配关键词后的标题
+              var postTitle = highlightKeyword(title, titleHitSlice, 0, title.length) || title;
+              // 标记匹配关键词后的内容
+              var postContent;
+              // 显示内容的长度
+              var SHOW_WORD_LENGTH = 200;
+              // 命中关键词前的字符显示长度
+              var SHOW_WORD_FRONT_LENGTH = 20;
+              var SHOW_WORD_END_LENGTH = SHOW_WORD_LENGTH - SHOW_WORD_FRONT_LENGTH;
+
+              // 截取匹配的第一个字符，前后共 200 个字符来显示
+              if (contentHitSlice.length > 0) {
+                var firstIndex = contentHitSlice[0].index;
+                var start = firstIndex > SHOW_WORD_FRONT_LENGTH ? firstIndex - SHOW_WORD_FRONT_LENGTH : 0;
+                var end = firstIndex + SHOW_WORD_END_LENGTH;
+                postContent = highlightKeyword(content, contentHitSlice, start, end);
+              } else { // 未匹配到内容，直接截取前 200 个字符来显示
+                postContent = content.slice(0, SHOW_WORD_LENGTH);
+              }
+              postData.title = postTitle;
+              postData.content = postContent;
+              postData.url = postURL;
+              postData.weight = postWeight;
+              matchPosts.push(postData);
+            }
+          });
+        }
+
+        var resultInnerHtml = '';
+        if (matchPosts.length) {
+          // 按权重递增的顺序排序，使权重大的优先显示
+          matchPosts.sort(function (left, right) {
+            return right.weight - left.weight;
+          });
+          resultInnerHtml += '<ul>';
+          matchPosts.forEach(function (post) {
+            resultInnerHtml += '<li><a class="search-results-title" href="' + post.url + '">';
+            resultInnerHtml += post.title;
+            resultInnerHtml += '</a><div class="search-results-content">';
+            resultInnerHtml += post.content;
+            resultInnerHtml += '</div></li>';
+          });
+          resultInnerHtml += '</ul>';
+        } else {
+          resultInnerHtml += '<div class="search-results-none"><i class="far fa-meh"></i></div>';
+        }
+        $result.html(resultInnerHtml);
+      };
+      $input.on('input', searchPost);
+      $input.on('keyup', function (e) {
+        if (e.keyCode === Stun.utils.codeToKeyCode('Enter')) {
+          searchPost();
+        }
+      });
+    }
+  });
+}
+
+function closeSearch () {
+  $('body').css({ overflow: 'auto' });
+  $('.search-popup').css({ display: 'none' });
+  $('.search-mask').css({ display: 'none' });
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+  Stun.utils.pjaxReloadLocalSearch = function () {
+    $('.header-nav-search').on('click', function (e) {
+      e.stopPropagation();
+      $('body').css('overflow', 'hidden');
+      $('.search-popup')
+        .velocity('stop')
+        .velocity('transition.expandIn', {
+          duration: 300,
+          complete: function () {
+            $('.search-popup input').focus();
+          }
+        });
+      $('.search-mask')
+        .velocity('stop')
+        .velocity('transition.fadeIn', {
+          duration: 300
+        });
+
+      initSearch();
+    });
+    $('.search-mask, .search-close').on('click', function () {
+      closeSearch();
+    });
+    $(document).on('keydown', function (e) {
+      // Escape <=> 27
+      if (e.keyCode === Stun.utils.codeToKeyCode('Escape')) {
+        closeSearch();
+      }
+    });
+  };
+
+  Stun.utils.pjaxReloadLocalSearch();
+}, false);</script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'http://wz96cj.github.io/2021/05/20/Kafka%E6%90%AD%E5%BB%BA%E5%9C%A8%E7%BA%BF%E6%B6%88%E6%81%AF%E4%B8%AD%E8%BD%AC%E6%9C%8D%E5%8A%A1/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script data-pjax="">function loadLivere () {
+  var d = document, s = d.createElement('script');
+
+  if (!d.getElementById('lv-container')) {
+    return;
+  }
+  if (typeof LivereTower === 'function') {
+    return;
+  }
+  s.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+  if (true) {
+    s.setAttribute('data-pjax-rm', '');
+  }
+  (d.head || d.body).appendChild(s);
+}
+
+if (true) {
+  loadLivere();
+} else {
+  window.addEventListener('DOMContentLoaded', loadLivere, false);
+}</script><script src="/js/utils.js?v=2.0.1"></script><script src="/js/stun-boot.js?v=2.0.1"></script><script src="/js/scroll.js?v=2.0.1"></script><script src="/js/header.js?v=2.0.1"></script><script src="/js/sidebar.js?v=2.0.1"></script></body></html>

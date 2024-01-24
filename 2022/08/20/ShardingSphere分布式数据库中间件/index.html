@@ -1,0 +1,464 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/images/icons/favicon-16x16.png?v=2.0.1" type="image/png" sizes="16x16"><link rel="icon" href="/images/icons/favicon-32x32.png?v=2.0.1" type="image/png" sizes="32x32"><meta name="description" content="Mysql主从环境搭建">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ShardingSphere分布式数据库中间件">
+<meta property="og:url" content="http://wz96cj.github.io/2022/08/20/ShardingSphere%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/index.html">
+<meta property="og:site_name" content="耳东人夋">
+<meta property="og:description" content="Mysql主从环境搭建">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-29.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-30.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-31.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-32.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-33.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-34.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-35.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-36.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-37.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-38.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-39.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-40.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-41.png">
+<meta property="og:image" content="http://wz96cj.github.io/images/pasted-42.png">
+<meta property="article:published_time" content="2022-08-20T09:00:00.000Z">
+<meta property="article:modified_time" content="2022-08-24T12:30:30.000Z">
+<meta property="article:author" content="Chen Jun">
+<meta property="article:tag" content="中间件">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://wz96cj.github.io/images/pasted-29.png"><meta name="keywords" content="Chen Jun, 耳东人夋"><meta name="description" content="一个有趣的人"><title>ShardingSphere分布式数据库中间件 | 耳东人夋</title><link ref="canonical" href="http://wz96cj.github.io/2022/08/20/ShardingSphere%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.0.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"dark","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: undefined,
+  lazyload: true,
+  pjax: {"avoidBanner":false},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 4.2.1"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">归档</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">分类</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">标签</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/introduction/"><span class="header-nav-menu-item__icon"><i class="fa fa-user-circle"></i></span><span class="header-nav-menu-item__text">关于</span></a></div></div><div class="header-nav-search"><span class="header-nav-search__icon"><i class="fas fa-search"></i></span><span class="header-nav-search__text">搜索</span></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">耳东人夋</div><div class="header-banner-info__subtitle">当一个问题包含一个前提条件的时候，通常答案就在于改变这个前提条件上</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div><!-- 判断是否启用aplayer--><!-- 播放器容器--><div class="aplayer" data-id="8059270200" data-server="tencent" data-type="playlist" data-fixed="true" data-order="list" data-preload="auto"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/meting@1.2.0/dist/Meting.min.js"></script></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">ShardingSphere分布式数据库中间件</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2022-08-20</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2022-08-24</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">1.2k</span></span></div></header><div class="post-body"><hr>
+<blockquote>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;Apache ShardingSphere 是一款分布式的数据库生态系统， 可以将任意数据库转换为分布式数据库，并通过数据分片、弹性伸缩、加密等能力对原有数据库进行增强。</p>
+</blockquote>
+<hr>
+<pre><code>ShardingSphere-JDBC：定位为轻量级 Java 框架，在 Java 的 JDBC 层提供的额外服务；是一个 Jar 包，底层通过重写 JDBC 组件完成 SQL 解析、路由、改写、执行等流程;需要在项目中添加对应功能的配置文件，对应用有一定侵入性;
+
+ShardingSphere-PROXY：定位为透明化的数据库代理端，通过实现数据库二进制协议，对异构语言提供支持。是一个进程服务，大部分情况下定位为辅助开发运维的效率工具。它将自己伪装为数据库，应用对接后对代码是无侵入的;对 SQL 的执行逻辑同 ShardingSphere-JDBC 一致，两者复用同一内核。</code></pre><p>&nbsp;&nbsp;&nbsp;&nbsp;通过 ShardingSphere-JDBC 是直接操作数据库，相当于只有一次网络 IO;而应用连接 ShardingSphere-Proxy 是一次网络 IO，ShardingSphere-Proxy 再操作数据库，又会发生一次网络 IO;<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-29.png"  alt="upload successful">
+      <br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-30.png"  alt="upload successful">
+      </p>
+<ul>
+<li><strong>ShardingSphere-PROXY安装</strong><br><br><span class="exturl"><a class="exturl__link"   href="https://shardingsphere.apache.org/document/current/cn/user-manual/shardingsphere-proxy/startup/bin/"  target="_blank" rel="noopener">官方教程</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span><ol>
+<li>下载ShardingSphere-PROXY二进制包<span class="exturl"><a class="exturl__link"   href="https://www.apache.org/dyn/closer.lua/shardingsphere/5.3.0/apache-shardingsphere-5.3.0-shardingsphere-proxy-bin.tar.gz"  target="_blank" rel="noopener">下载地址</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span>，教程的版本为5.0，不同版本，配置文件配置参数不同<br>下载完成后解压文件，conf的目录结构<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-31.png"  alt="upload successful">
+      </li>
+<li>引入依赖<br><br>如果后端连接 PostgreSQL 或 openGauss 数据库，不需要引入额外依赖。<br><br>如果后端连接 MySQL 数据库，请下载 <span class="exturl"><a class="exturl__link"   href="https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.47/mysql-connector-java-5.1.47.jar"  target="_blank" rel="noopener">mysql-connector-java-5.1.47.jar</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span> 或者 <span class="exturl"><a class="exturl__link"   href="https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.11/mysql-connector-java-8.0.11.jar"  target="_blank" rel="noopener">mysql-connector-java-8.0.11.jar</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span>，并将其放在/lib目录下</li>
+<li>配置server.yaml </li>
+</ol>
+</li>
+</ul>
+  <figure class="highlight yaml"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"> <span class="attr">rules:</span></span><br><span class="line"> <span class="bullet">-</span> <span class="type">!AUTHORITY</span></span><br><span class="line">   <span class="attr">users:</span></span><br><span class="line">     <span class="bullet">-</span> <span class="string">root@%:root</span></span><br><span class="line">     <span class="bullet">-</span> <span class="string">sharding@:sharding</span></span><br><span class="line">   <span class="string">provider:#ALL_PRIVILEGES_PERMITTED</span> <span class="string">默认授予所有权限（不鉴权），不会与实际数据库交互；NATIVE</span> <span class="string">基于后端数据库存取</span> <span class="string">server.yaml</span> <span class="string">中配置的权限信息。如果用户不存在，则自动创建用户并默认赋予最高权限</span></span><br><span class="line">     <span class="attr">type:</span> <span class="string">ALL_PRIVILEGES_PERMITTED</span></span><br><span class="line"> <span class="bullet">-</span> <span class="type">!TRANSACTION</span></span><br><span class="line">   <span class="attr">defaultType:</span> <span class="string">XA</span></span><br><span class="line">   <span class="attr">providerType:</span> <span class="string">Atomikos</span></span><br><span class="line"></span><br><span class="line"><span class="attr">props:</span></span><br><span class="line"><span class="comment">#  max-connections-size-per-query: 1</span></span><br><span class="line"><span class="comment">#  kernel-executor-size: 16  # Infinite by default.</span></span><br><span class="line"><span class="comment">#  proxy-frontend-flush-threshold: 128  # The default value is 128.</span></span><br><span class="line"><span class="comment">#  proxy-opentracing-enabled: false</span></span><br><span class="line"><span class="comment">#  proxy-hint-enabled: false</span></span><br><span class="line"> <span class="attr">sql-show:</span> <span class="literal">true</span></span><br></pre></td></tr></table></div></figure>
+<p>  4.启动ShardingSphere-PROXY，进入到安装目录的bin文件下，通过 start.bat +端口号 命令启动</p>
+<ul>
+<li><strong>数据分片</strong><br></li>
+</ul>
+<p>1.配置config-sharding.yaml</p>
+  <figure class="highlight yaml"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">schemaName:</span> <span class="string">sharding_db</span></span><br><span class="line"><span class="attr">dataSources:</span></span><br><span class="line"> <span class="attr">ds_0:</span></span><br><span class="line">   <span class="attr">url:</span> <span class="string">jdbc:mysql://ip:端口/demo_ds_0?serverTimezone=UTC&amp;useSSL=false</span></span><br><span class="line">   <span class="attr">username:</span> </span><br><span class="line">   <span class="attr">password:</span> </span><br><span class="line">   <span class="attr">connectionTimeoutMilliseconds:</span> <span class="number">30000</span></span><br><span class="line">   <span class="attr">idleTimeoutMilliseconds:</span> <span class="number">60000</span></span><br><span class="line">   <span class="attr">maxLifetimeMilliseconds:</span> <span class="number">1800000</span></span><br><span class="line">   <span class="attr">maxPoolSize:</span> <span class="number">50</span></span><br><span class="line">   <span class="attr">minPoolSize:</span> <span class="number">1</span></span><br><span class="line"><span class="string">rules:#分表规则</span></span><br><span class="line"><span class="bullet">-</span> <span class="type">!SHARDING</span></span><br><span class="line"> <span class="attr">tables:</span></span><br><span class="line"><span class="comment">#对t_order表进行分表</span></span><br><span class="line">   <span class="attr">t_order:</span></span><br><span class="line">     <span class="comment">#t_order_$&#123;0..1&#125;表示会分成t_order_0,t_order_1表，也可以对数据库进行区分如ds_$&#123;0..1&#125;对应上述的连接别名，</span></span><br><span class="line">     <span class="attr">actualDataNodes:</span> <span class="string">ds_0.t_order_$&#123;0..1&#125;</span></span><br><span class="line">     <span class="attr">tableStrategy:</span></span><br><span class="line">       <span class="attr">standard:</span></span><br><span class="line">         <span class="comment">#分表字段</span></span><br><span class="line">         <span class="attr">shardingColumn:</span> <span class="string">order_id</span></span><br><span class="line">        <span class="comment">#分表算法别名</span></span><br><span class="line">         <span class="attr">shardingAlgorithmName:</span> <span class="string">t_order_inline</span></span><br><span class="line">     <span class="comment">#主键生成策略</span></span><br><span class="line">     <span class="comment">#keyGenerateStrategy:</span></span><br><span class="line">       <span class="comment">#column: order_id</span></span><br><span class="line">       <span class="comment">#keyGeneratorName: snowflake</span></span><br><span class="line"> <span class="attr">shardingAlgorithms:</span></span><br><span class="line">   <span class="attr">t_order_inline:</span></span><br><span class="line">     <span class="comment">#分片算法类型详情见https://shardingsphere.apache.org/document/current/cn/user-manual/common-config/builtin-algorithm/sharding/</span></span><br><span class="line">     <span class="attr">type:</span> <span class="string">MOD</span></span><br><span class="line">     <span class="attr">props:</span></span><br><span class="line">       <span class="attr">sharding-count:</span> <span class="number">2</span></span><br></pre></td></tr></table></div></figure>
+<p> 2.测试连接代理服务(NAVICAT高版本会提示check the manual that corresponds to your MySQL server version for the right syntax to use near ‘SHOW VARIABLES LIKE ‘sql_mode’;异常)<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-32.png"  alt="upload successful">
+      <br> 3.根据config-sharding.yaml配置文件在代理服务器上新增相关数据<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-33.png"  alt="upload successful">
+      <br> 4.插入测试数据，查看数据库分表情况<br><br>order_id为1的记录取模运算后为1分到了t_order_1，order_id为2的记录取模运算后为0分到了t_order_0<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-34.png"  alt="upload successful">
+      <br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-35.png"  alt="upload successful">
+      </p>
+<ul>
+<li><strong>读写分离</strong><br><br>1.配置config-readwrite-splitting.yaml</li>
+</ul>
+   <figure class="highlight yaml"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">schemaName:</span> <span class="string">sharding_db</span></span><br><span class="line"><span class="attr">dataSources:</span></span><br><span class="line"> <span class="attr">ds_0:</span></span><br><span class="line">   <span class="attr">url:</span> <span class="string">jdbc:mysql://ip:端口/demo_ds_0?serverTimezone=UTC&amp;useSSL=false</span></span><br><span class="line">   <span class="attr">username:</span> </span><br><span class="line">   <span class="attr">password:</span> </span><br><span class="line">   <span class="attr">connectionTimeoutMilliseconds:</span> <span class="number">30000</span></span><br><span class="line">   <span class="attr">idleTimeoutMilliseconds:</span> <span class="number">60000</span></span><br><span class="line">   <span class="attr">maxLifetimeMilliseconds:</span> <span class="number">1800000</span></span><br><span class="line">   <span class="attr">maxPoolSize:</span> <span class="number">50</span></span><br><span class="line">   <span class="attr">minPoolSize:</span> <span class="number">1</span></span><br><span class="line"><span class="string">rules:#分表规则</span></span><br><span class="line"><span class="bullet">-</span> <span class="type">!SHARDING</span></span><br><span class="line"> <span class="attr">tables:</span></span><br><span class="line"><span class="comment">#对t_order表进行分表</span></span><br><span class="line">   <span class="attr">t_order:</span></span><br><span class="line">     <span class="comment">#t_order_$&#123;0..1&#125;表示会分成t_order_0,t_order_1表，也可以对数据库进行区分如ds_$&#123;0..1&#125;对应上述的连接别名，</span></span><br><span class="line">     <span class="attr">actualDataNodes:</span> <span class="string">ds_0.t_order_$&#123;0..1&#125;</span></span><br><span class="line">     <span class="attr">tableStrategy:</span></span><br><span class="line">       <span class="attr">standard:</span></span><br><span class="line">         <span class="comment">#分表字段</span></span><br><span class="line">         <span class="attr">shardingColumn:</span> <span class="string">order_id</span></span><br><span class="line">        <span class="comment">#分表算法别名</span></span><br><span class="line">         <span class="attr">shardingAlgorithmName:</span> <span class="string">t_order_inline</span></span><br><span class="line">     <span class="comment">#主键生成策略</span></span><br><span class="line">     <span class="comment">#keyGenerateStrategy:</span></span><br><span class="line">       <span class="comment">#column: order_id</span></span><br><span class="line">       <span class="comment">#keyGeneratorName: snowflake</span></span><br><span class="line"> <span class="attr">shardingAlgorithms:</span></span><br><span class="line">   <span class="attr">t_order_inline:</span></span><br><span class="line">     <span class="comment">#分片算法类型详情见https://shardingsphere.apache.org/document/current/cn/user-manual/common-config/builtin-algorithm/sharding/</span></span><br><span class="line">     <span class="attr">type:</span> <span class="string">MOD</span></span><br><span class="line">     <span class="attr">props:</span></span><br><span class="line">       <span class="attr">sharding-count:</span> <span class="number">2</span></span><br></pre></td></tr></table></div></figure>
+<p>2.创建对应的数据库以及表<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-36.png"  alt="upload successful">
+      <br>3.通过命令连接ShardingSphere-PROXY,并进行查询(直接通过Navicat进行相关操作还是会出现一些问题，可能还没兼容好)<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-37.png"  alt="upload successful">
+      <br>4.通过ShardingSphere-PROXY日志可以发现是通过读库read_ds进行查询<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-38.png"  alt="upload successful">
+      <br>5.插入操作<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-39.png"  alt="upload successful">
+      <br>6.通过ShardingSphere-PROXY日志可以发现是通过写库write_ds进行插入<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-40.png"  alt="upload successful">
+      </p>
+<ul>
+<li><strong>数据加密</strong><br><br>1.配置config-encrypt.yaml</li>
+</ul>
+   <figure class="highlight yaml"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">schemaName:</span> <span class="string">encrypt_db</span></span><br><span class="line"></span><br><span class="line"><span class="attr">dataSources:</span></span><br><span class="line"> <span class="attr">ds_0:</span></span><br><span class="line">   <span class="attr">url:</span> <span class="string">jdbc:mysql://192.168.60.88:3308/encrypt_ds?serverTimezone=UTC&amp;useSSL=false</span></span><br><span class="line">   <span class="attr">username:</span> <span class="string">root</span></span><br><span class="line">   <span class="attr">password:</span> <span class="string">root</span></span><br><span class="line">   <span class="attr">connectionTimeoutMilliseconds:</span> <span class="number">30000</span></span><br><span class="line">   <span class="attr">idleTimeoutMilliseconds:</span> <span class="number">60000</span></span><br><span class="line">   <span class="attr">maxLifetimeMilliseconds:</span> <span class="number">1800000</span></span><br><span class="line">   <span class="attr">maxPoolSize:</span> <span class="number">50</span></span><br><span class="line">   <span class="attr">minPoolSize:</span> <span class="number">1</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line"><span class="bullet">-</span> <span class="type">!ENCRYPT</span></span><br><span class="line"> <span class="attr">encryptors:</span></span><br><span class="line">   <span class="comment">#加密算法名称</span></span><br><span class="line">   <span class="attr">aes_encryptor:</span></span><br><span class="line">    <span class="comment">#加解密算法类型</span></span><br><span class="line">     <span class="attr">type:</span> <span class="string">AES</span></span><br><span class="line">     <span class="attr">props:</span></span><br><span class="line">       <span class="attr">aes-key-value:</span> <span class="string">123456abc</span></span><br><span class="line">   <span class="attr">md5_encryptor:</span></span><br><span class="line">     <span class="attr">type:</span> <span class="string">MD5</span></span><br><span class="line"> <span class="attr">tables:</span></span><br><span class="line">   <span class="attr">t_encrypt:</span></span><br><span class="line">     <span class="attr">columns:</span></span><br><span class="line">       <span class="comment">#加密字段</span></span><br><span class="line">       <span class="attr">number:</span></span><br><span class="line">         <span class="comment">#原文列名称</span></span><br><span class="line">         <span class="attr">plainColumn:</span> <span class="string">number</span></span><br><span class="line">         <span class="comment">#加密列名称</span></span><br><span class="line">         <span class="attr">cipherColumn:</span> <span class="string">number_cipher</span></span><br><span class="line">        <span class="comment">#加密算法名称</span></span><br><span class="line">         <span class="attr">encryptorName:</span> <span class="string">aes_encryptor</span></span><br></pre></td></tr></table></div></figure>
+<p>2.插入一条测试数据<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-41.png"  alt="upload successful">
+      <br>3.自动生成加密列字段<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/images/pasted-42.png"  alt="upload successful">
+      </p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="http://wz96cj.github.io/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/">中间件</a></span></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2023/03/01/%E8%AE%A2%E9%98%85binlog%E6%97%A5%E5%BF%97/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">订阅MySql的binlog日志</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2022/06/23/Mysql%E4%B8%BB%E4%BB%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/"><span class="paginator-prev__text">Mysql主从环境搭建</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav><!-- 判断是否启用aplayer--><!-- 播放器容器--><div class="aplayer" data-id="8059270200" data-server="theme.aplayer.server" data-type="theme.aplayer.type" data-fixed="theme.aplayer.fixed" data-order="theme.aplayer.order" data-preload="theme.aplayer.preload"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/meting@1.2.0/dist/Meting.min.js"></script></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/images/icons/stun-logo.svg" alt="avatar"></div><p class="sidebar-ov-author__text">努力搬砖中 (快速切换文章 CTRL+→/←)</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/wz96cj" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="http://img.wz96cj.top/WXcode.jpg" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="http://img.wz96cj.top/QQcode.jpg" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">31</div><div class="sidebar-ov-state-item__name">归档</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">11</div><div class="sidebar-ov-state-item__name">分类</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">20</div><div class="sidebar-ov-state-item__name">标签</div></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2024</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span>Chen Jun</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon" data-popover-pos="up" data-popover="访问人数"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon" data-popover-pos="up" data-popover="浏览总量"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div><div><div> <a target="_blank" href="http://beian.miit.gov.cn" style="color:#f5f6f7"  rel="nofollow">浙ICP备20023281号</a></div></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><div class="search-mask"></div><div class="search-popup"><span class="search-close"></span><div class="search-input"><input placeholder="搜索文章（支持多关键词，请用空格分隔）"></div><div class="search-results"></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/canvas-nest.js@1.0.1/dist/canvas-nest.min.js" color="0,0,0" opacity="0.6" count="99" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script>function initSearch() {
+  var isXML = true;
+  var search_path = 'search.xml';
+
+  if (!search_path) {
+    search_path = 'search.xml';
+  } else if (/json$/i.test(search_path)) {
+    isXML = false;
+  }
+
+  var path = '/' + search_path;
+  $.ajax({
+    url: path,
+    dataType: isXML ? 'xml' : 'json',
+    async: true,
+    success: function (res) {
+      var datas = isXML ? $('entry', res).map(function () {
+        // 将 XML 转为 JSON
+        return {
+          title: $('title', this).text(),
+          content: $('content', this).text(),
+          url: $('url', this).text()
+        };
+      }).get() : res;
+      var $input = $('.search-input input');
+      var $result = $('.search-results');
+      // 搜索对象（标题、内容）的权重，影响显示顺序
+      var WEIGHT = { title: 100, content: 1 };
+      var searchPost = function () {
+        var searchText = $input.val().toLowerCase().trim();
+        // 根据空白字符分隔关键字
+        var keywords = searchText.split(/[\s]+/);
+        // 搜索结果
+        var matchPosts = [];
+
+        // 有多个关键字时，将原文字整个保存下来
+        if (keywords.length > 1) {
+          keywords.push(searchText);
+        }
+        // 防止未输入字符时搜索
+        if (searchText.length > 0) {
+          datas.forEach(function (data) {
+            var isMatch  = false;
+            // 没有标题的文章使用预设的 i18n 变量代替
+            var title = (data.title && data.title.trim()) || '[ 文章无标题 ]';
+            var titleLower = title && title.toLowerCase();
+            // 删除 HTML 标签 和 所有空白字符
+            var content = data.content && data.content.replace(/<[^>]+>/g, '');
+            var contentLower = content && content.toLowerCase();
+            // 删除重复的 /
+            var postURL = data.url && decodeURI(data.url).replace(/\/{2,}/g, '/');
+            // 标题中匹配到的关键词
+            var titleHitSlice = [];
+            // 内容中匹配到的关键词
+            var contentHitSlice = [];
+
+            keywords.forEach(function (keyword) {
+              /**
+              * 获取匹配的关键词的索引
+              * @param {String} keyword 要匹配的关键字
+              * @param {String} text 原文字
+              * @param {Boolean} caseSensitive 是否区分大小写
+              * @param {Number} weight 匹配对象的权重。权重大的优先显示
+              * @return {Array}
+              */
+              function getIndexByword (word, text, caseSensitive, weight) {
+                if (!word || !text) {
+                  return [];
+                };
+
+                var startIndex = 0; // 每次匹配的开始索引
+                var index = -1;     // 匹配到的索引值
+                var result = [];    // 匹配结果
+
+                if (!caseSensitive) {
+                  word = word.toLowerCase();
+                  text = text.toLowerCase();
+                }
+
+                while((index = text.indexOf(word, startIndex)) !== -1) {
+                  var hasMatch = false;
+                  // 索引位置相同的关键词，保留长度较长的
+                  titleHitSlice.forEach(function (hit) {
+                    if (hit.index === index && hit.word.length < word.length) {
+                      hit.word = word;
+                      hasMatch = true;
+                    }
+                  });
+                  startIndex = index + word.length;
+                  !hasMatch && result.push({ index: index, word: word, weight: weight });
+                }
+                return result;
+              }
+              titleHitSlice = titleHitSlice.concat(getIndexByword(keyword, titleLower, false, WEIGHT.title));
+              contentHitSlice = contentHitSlice.concat(getIndexByword(keyword, contentLower, false, WEIGHT.content));
+            });
+
+            var hitTitle = titleHitSlice.length;
+            var hitContent = contentHitSlice.length;
+
+            if (hitTitle > 0 || hitContent > 0) {
+              isMatch = true;
+            }
+            if (isMatch) {
+              ;[titleHitSlice, contentHitSlice].forEach(function (hit) {
+                // 按照匹配文字的索引的递增顺序排序
+                hit.sort(function (left, right) {
+                  return left.index - right.index;
+                });
+              });
+              /**
+              * 给文本中匹配到的关键词添加标记，从而进行高亮显示
+              * @param {String} text 原文本
+              * @param {Array} hitSlice 匹配项的索引信息
+              * @param {Number} start 开始索引
+              * @param {Number} end 结束索引
+              * @return {String}
+              */
+              function highlightKeyword (text, hitSlice, start, end) {
+                if (!text || !hitSlice || !hitSlice.length) {
+                  return;
+                }
+
+                var result = '';
+                var startIndex = start;
+                var endIndex = end;
+                hitSlice.forEach(function (hit) {
+                  if (hit.index < startIndex) {
+                    return;
+                  }
+
+                  var hitWordEnd = hit.index + hit.word.length;
+                  result += text.slice(startIndex, hit.index);
+                  result += '<b>' + text.slice(hit.index, hitWordEnd) + '</b>';
+                  startIndex = hitWordEnd;
+                });
+                result += text.slice(startIndex, endIndex);
+                return result;
+              }
+
+              var postData = {};
+              // 文章总的搜索权重
+              var postWeight = titleHitSlice.length * WEIGHT.title + contentHitSlice.length * WEIGHT.content;
+              // 标记匹配关键词后的标题
+              var postTitle = highlightKeyword(title, titleHitSlice, 0, title.length) || title;
+              // 标记匹配关键词后的内容
+              var postContent;
+              // 显示内容的长度
+              var SHOW_WORD_LENGTH = 200;
+              // 命中关键词前的字符显示长度
+              var SHOW_WORD_FRONT_LENGTH = 20;
+              var SHOW_WORD_END_LENGTH = SHOW_WORD_LENGTH - SHOW_WORD_FRONT_LENGTH;
+
+              // 截取匹配的第一个字符，前后共 200 个字符来显示
+              if (contentHitSlice.length > 0) {
+                var firstIndex = contentHitSlice[0].index;
+                var start = firstIndex > SHOW_WORD_FRONT_LENGTH ? firstIndex - SHOW_WORD_FRONT_LENGTH : 0;
+                var end = firstIndex + SHOW_WORD_END_LENGTH;
+                postContent = highlightKeyword(content, contentHitSlice, start, end);
+              } else { // 未匹配到内容，直接截取前 200 个字符来显示
+                postContent = content.slice(0, SHOW_WORD_LENGTH);
+              }
+              postData.title = postTitle;
+              postData.content = postContent;
+              postData.url = postURL;
+              postData.weight = postWeight;
+              matchPosts.push(postData);
+            }
+          });
+        }
+
+        var resultInnerHtml = '';
+        if (matchPosts.length) {
+          // 按权重递增的顺序排序，使权重大的优先显示
+          matchPosts.sort(function (left, right) {
+            return right.weight - left.weight;
+          });
+          resultInnerHtml += '<ul>';
+          matchPosts.forEach(function (post) {
+            resultInnerHtml += '<li><a class="search-results-title" href="' + post.url + '">';
+            resultInnerHtml += post.title;
+            resultInnerHtml += '</a><div class="search-results-content">';
+            resultInnerHtml += post.content;
+            resultInnerHtml += '</div></li>';
+          });
+          resultInnerHtml += '</ul>';
+        } else {
+          resultInnerHtml += '<div class="search-results-none"><i class="far fa-meh"></i></div>';
+        }
+        $result.html(resultInnerHtml);
+      };
+      $input.on('input', searchPost);
+      $input.on('keyup', function (e) {
+        if (e.keyCode === Stun.utils.codeToKeyCode('Enter')) {
+          searchPost();
+        }
+      });
+    }
+  });
+}
+
+function closeSearch () {
+  $('body').css({ overflow: 'auto' });
+  $('.search-popup').css({ display: 'none' });
+  $('.search-mask').css({ display: 'none' });
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+  Stun.utils.pjaxReloadLocalSearch = function () {
+    $('.header-nav-search').on('click', function (e) {
+      e.stopPropagation();
+      $('body').css('overflow', 'hidden');
+      $('.search-popup')
+        .velocity('stop')
+        .velocity('transition.expandIn', {
+          duration: 300,
+          complete: function () {
+            $('.search-popup input').focus();
+          }
+        });
+      $('.search-mask')
+        .velocity('stop')
+        .velocity('transition.fadeIn', {
+          duration: 300
+        });
+
+      initSearch();
+    });
+    $('.search-mask, .search-close').on('click', function () {
+      closeSearch();
+    });
+    $(document).on('keydown', function (e) {
+      // Escape <=> 27
+      if (e.keyCode === Stun.utils.codeToKeyCode('Escape')) {
+        closeSearch();
+      }
+    });
+  };
+
+  Stun.utils.pjaxReloadLocalSearch();
+}, false);</script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'http://wz96cj.github.io/2022/08/20/ShardingSphere%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script data-pjax="">function loadLivere () {
+  var d = document, s = d.createElement('script');
+
+  if (!d.getElementById('lv-container')) {
+    return;
+  }
+  if (typeof LivereTower === 'function') {
+    return;
+  }
+  s.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+  if (true) {
+    s.setAttribute('data-pjax-rm', '');
+  }
+  (d.head || d.body).appendChild(s);
+}
+
+if (true) {
+  loadLivere();
+} else {
+  window.addEventListener('DOMContentLoaded', loadLivere, false);
+}</script><script src="/js/utils.js?v=2.0.1"></script><script src="/js/stun-boot.js?v=2.0.1"></script><script src="/js/scroll.js?v=2.0.1"></script><script src="/js/header.js?v=2.0.1"></script><script src="/js/sidebar.js?v=2.0.1"></script></body></html>

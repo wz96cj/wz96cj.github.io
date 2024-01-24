@@ -1,0 +1,378 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/images/icons/favicon-16x16.png?v=2.0.1" type="image/png" sizes="16x16"><link rel="icon" href="/images/icons/favicon-32x32.png?v=2.0.1" type="image/png" sizes="32x32"><meta name="description" content="golang中RabbitMQ自动重连的实现">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Golang-RabbitMQ 连接以及重连机制">
+<meta property="og:url" content="http://wz96cj.github.io/2021/09/12/Golang-RabbitMQ%E8%BF%9E%E6%8E%A5%E4%BB%A5%E5%8F%8A%E9%87%8D%E8%BF%9E%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="耳东人夋">
+<meta property="og:description" content="golang中RabbitMQ自动重连的实现">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-09-12T11:50:00.000Z">
+<meta property="article:modified_time" content="2021-09-12T12:30:00.000Z">
+<meta property="article:author" content="Chen Jun">
+<meta name="twitter:card" content="summary"><meta name="keywords" content="Chen Jun, 耳东人夋"><meta name="description" content="一个有趣的人"><title>Golang-RabbitMQ 连接以及重连机制 | 耳东人夋</title><link ref="canonical" href="http://wz96cj.github.io/2021/09/12/Golang-RabbitMQ%E8%BF%9E%E6%8E%A5%E4%BB%A5%E5%8F%8A%E9%87%8D%E8%BF%9E%E6%9C%BA%E5%88%B6/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.0.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"dark","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: undefined,
+  lazyload: true,
+  pjax: {"avoidBanner":false},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 4.2.1"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">归档</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">分类</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">标签</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/introduction/"><span class="header-nav-menu-item__icon"><i class="fa fa-user-circle"></i></span><span class="header-nav-menu-item__text">关于</span></a></div></div><div class="header-nav-search"><span class="header-nav-search__icon"><i class="fas fa-search"></i></span><span class="header-nav-search__text">搜索</span></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">耳东人夋</div><div class="header-banner-info__subtitle">当一个问题包含一个前提条件的时候，通常答案就在于改变这个前提条件上</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div><!-- 判断是否启用aplayer--><!-- 播放器容器--><div class="aplayer" data-id="8059270200" data-server="tencent" data-type="playlist" data-fixed="true" data-order="list" data-preload="auto"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/meting@1.2.0/dist/Meting.min.js"></script></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Golang-RabbitMQ 连接以及重连机制</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2021-09-12</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2021-09-12</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">1.6k</span></span></div></header><div class="post-body"><p>&nbsp;&nbsp;&nbsp;&nbsp;随着客户数量的增多，最近需要将RabbitMQ服务单独迁移到另一个服务器，减少对业务服务器的影响，在整理相关服务关系文档的时候，发现Golang项目里RabbitMQ重连机制还不够完善，并且代码有许多重复创建连接问题，当RabbitMQ连接断开或者是容器重启时还会影响服务的正常运行，于是准备将相关重连代码进行改进并提取公共使用方法。</p>
+<hr>
+<p><strong>一、生产者的创建以及发送</strong></p>
+ <figure class="highlight go"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Rabbit <span class="keyword">struct</span> &#123;</span><br><span class="line">	Host     <span class="keyword">string</span></span><br><span class="line">	Port     <span class="keyword">int</span></span><br><span class="line">	Username <span class="keyword">string</span></span><br><span class="line">	Password <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> RabbitConsumerInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">//交换机</span></span><br><span class="line">	ExchangeName <span class="keyword">string</span></span><br><span class="line">	<span class="comment">//队列</span></span><br><span class="line">	QueueName <span class="keyword">string</span></span><br><span class="line">	<span class="comment">//模式</span></span><br><span class="line">	ExchangeType <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//Rabbit连接</span></span><br><span class="line"><span class="keyword">type</span> Connection <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">//连接</span></span><br><span class="line">	Conn *amqp.Connection</span><br><span class="line">	<span class="comment">//通道</span></span><br><span class="line">	Ch *amqp.Channel</span><br><span class="line">	<span class="comment">//连接异常结束</span></span><br><span class="line">	ConnNotifyClose <span class="keyword">chan</span> *amqp.Error</span><br><span class="line">	<span class="comment">//通道异常接收</span></span><br><span class="line">	ChNotifyClose <span class="keyword">chan</span> *amqp.Error</span><br><span class="line">	URL           <span class="keyword">string</span></span><br><span class="line">	Rabbit         Rabbit</span><br><span class="line">	<span class="comment">//用于关闭进程</span></span><br><span class="line">	CloseProcess <span class="keyword">chan</span> <span class="keyword">bool</span></span><br><span class="line">	<span class="comment">//消费者信息</span></span><br><span class="line">	RabbitConsumerList []RabbitConsumerInfo</span><br><span class="line">	<span class="comment">//生产者信息</span></span><br><span class="line">	RabbitProducerMap <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span></span><br><span class="line">	<span class="comment">//自定义消费者处理函数</span></span><br><span class="line">	ConsumeHandle <span class="function"><span class="keyword">func</span><span class="params">(&lt;-<span class="keyword">chan</span> amqp.Delivery)</span></span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	CancelOrderDelayQueue = <span class="string">"soesoft.cancel.order.delay.queue"</span></span><br><span class="line">	DelayExchange         = <span class="string">"soesoft.delay.exchange"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> DLXMessage <span class="keyword">struct</span> &#123;</span><br><span class="line">	QueueName   <span class="keyword">string</span> <span class="string">`json:"queueName"`</span></span><br><span class="line">	Content     <span class="keyword">string</span> <span class="string">`json:"content"`</span></span><br><span class="line">	NotifyCount <span class="keyword">int</span>    <span class="string">`json:"notifyCount"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">dial</span><span class="params">(url <span class="keyword">string</span>)</span> <span class="params">(*amqp.Connection, error)</span></span> &#123;</span><br><span class="line">	conn, err := amqp.Dial(url)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> conn, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//ProducerReConnect 生产者重连</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Connection)</span> <span class="title">ProducerReConnect</span><span class="params">()</span></span> &#123;</span><br><span class="line">closeTag:</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		c.ConnNotifyClose = c.Conn.NotifyClose(<span class="built_in">make</span>(<span class="keyword">chan</span> *amqp.Error))</span><br><span class="line">		c.ChNotifyClose = c.Ch.NotifyClose(<span class="built_in">make</span>(<span class="keyword">chan</span> *amqp.Error))</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> connErr, _ := &lt;-c.ConnNotifyClose:</span><br><span class="line">			<span class="keyword">if</span> connErr != <span class="literal">nil</span> &#123;</span><br><span class="line">				soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbitMQ连接异常:%s"</span>, connErr.Error()))</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 判断连接是否关闭</span></span><br><span class="line">			<span class="keyword">if</span> !c.Conn.IsClosed() &#123;</span><br><span class="line">				<span class="keyword">if</span> err := c.Conn.Close(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">					soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbit连接关闭异常:%s"</span>, err.Error()))</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">//重新连接</span></span><br><span class="line">			<span class="keyword">if</span> conn, err := dial(c.URL); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbit重连失败:%s"</span>, err.Error()))</span><br><span class="line">				_, isConnChannelOpen := &lt;-c.ConnNotifyClose</span><br><span class="line">				<span class="keyword">if</span> isConnChannelOpen &#123;</span><br><span class="line">					<span class="built_in">close</span>(c.ConnNotifyClose)</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="comment">//connection关闭时会自动关闭channel</span></span><br><span class="line">				ants.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.InitRabbitMQProducer(<span class="literal">false</span>, c.Rabbit) &#125;)</span><br><span class="line">				<span class="comment">//结束子进程</span></span><br><span class="line">				<span class="keyword">break</span> closeTag</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123; <span class="comment">//连接成功</span></span><br><span class="line">				c.Ch, _ = conn.Channel()</span><br><span class="line">				c.Conn = conn</span><br><span class="line">				soelog.Logger.Info(<span class="string">"rabbitMQ重连成功"</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// IMPORTANT: 必须清空 Notify，否则死连接不会释放</span></span><br><span class="line">			<span class="keyword">for</span> err := <span class="keyword">range</span> c.ConnNotifyClose &#123;</span><br><span class="line">				<span class="built_in">println</span>(err)</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> chErr, _ := &lt;-c.ChNotifyClose:</span><br><span class="line">			<span class="keyword">if</span> chErr != <span class="literal">nil</span> &#123;</span><br><span class="line">				soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbitMQ通道连接关闭:%s"</span>, chErr.Error()))</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 重新打开一个并发服务器通道来处理消息</span></span><br><span class="line">			<span class="keyword">if</span> !c.Conn.IsClosed() &#123;</span><br><span class="line">				ch, err := c.Conn.Channel()</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbitMQ channel重连失败:%s"</span>, err.Error()))</span><br><span class="line">					c.ChNotifyClose &lt;- chErr</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">					soelog.Logger.Info(<span class="string">"rabbitMQ通道重新创建成功"</span>)</span><br><span class="line">					c.Ch = ch</span><br><span class="line">				&#125;</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				_, isConnChannelOpen := &lt;-c.ConnNotifyClose</span><br><span class="line">				<span class="keyword">if</span> isConnChannelOpen &#123;</span><br><span class="line">					<span class="built_in">close</span>(c.ConnNotifyClose)</span><br><span class="line">				&#125;</span><br><span class="line">				ants.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.InitRabbitMQProducer(<span class="literal">false</span>, c.Rabbit) &#125;)</span><br><span class="line">				<span class="keyword">break</span> closeTag</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">for</span> err := <span class="keyword">range</span> c.ChNotifyClose &#123;</span><br><span class="line">				<span class="built_in">println</span>(err)</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> &lt;-c.CloseProcess:</span><br><span class="line">			<span class="keyword">break</span> closeTag</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	soelog.Logger.Info(<span class="string">"结束旧生产者进程"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//InitRabbitMQProducer 初始化生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Connection)</span> <span class="title">InitRabbitMQProducer</span><span class="params">(isClose <span class="keyword">bool</span>, rabbitMQConfig config.Rabbit)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> isClose &#123;</span><br><span class="line">		c.CloseProcess &lt;- <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.Rabbit = rabbitMQConfig</span><br><span class="line">	url := <span class="string">"amqp://"</span> + c.Rabbit.Username + <span class="string">":"</span> + c.Rabbit.Password + <span class="string">"@"</span> + c.Rabbit.Host + <span class="string">":"</span> + cast.ToString(c.Rabbit.Port) + <span class="string">"/"</span></span><br><span class="line">	conn, err := dial(url)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbitMQ连接异常:%s"</span>, err.Error()))</span><br><span class="line">		soelog.Logger.Info(<span class="string">"休息5S,开始重连rabbitMQ生产者"</span>)</span><br><span class="line">		time.Sleep(<span class="number">5</span> * time.Second)</span><br><span class="line">		ants.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.InitRabbitMQProducer(<span class="literal">false</span>, c.Rabbit) &#125;)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> conn.Close()</span><br><span class="line">	soelog.Logger.Info(<span class="string">"rabbitMQ生产者连接成功"</span>)</span><br><span class="line">	<span class="comment">// 打开一个并发服务器通道来处理消息</span></span><br><span class="line">	ch, err := conn.Channel()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbitMQ打开通道异常:%s"</span>, err.Error()))</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> ch.Close()</span><br><span class="line">	c.Conn = conn</span><br><span class="line">	c.URL = url</span><br><span class="line">	c.Ch = ch</span><br><span class="line">	c.CloseProcess = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>, <span class="number">1</span>)</span><br><span class="line">	c.ProducerReConnect()</span><br><span class="line">	soelog.Logger.Info(<span class="string">"结束rabbitMQ旧生产者"</span>)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Connection)</span> <span class="title">SendMessage</span><span class="params">(body []<span class="keyword">byte</span>, queueName <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> c.RabbitProducerMap == <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(<span class="string">"未初始化生产者信息"</span>)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> queueName == <span class="string">""</span> &#123;</span><br><span class="line">		soelog.Logger.Error(<span class="string">"队列名称不能为空"</span>)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	exchangeName := c.RabbitProducerMap[queueName]</span><br><span class="line">	<span class="keyword">if</span> exchangeName == <span class="string">""</span> &#123;</span><br><span class="line">		soelog.Logger.Error(<span class="string">"交换机名称不能为空"</span>)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	m := DLXMessage&#123;</span><br><span class="line">		QueueName:   queueName,</span><br><span class="line">		Content:     <span class="keyword">string</span>(body),</span><br><span class="line">		NotifyCount: <span class="number">1</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	body, _ = json.Marshal(m)</span><br><span class="line">	<span class="comment">// 发布</span></span><br><span class="line">	err := c.Ch.Publish(</span><br><span class="line">		exchangeName, <span class="comment">// exchange 默认模式，exchange为空</span></span><br><span class="line">		queueName,    <span class="comment">// routing key 默认模式路由到同名队列，即是task_queue</span></span><br><span class="line">		<span class="literal">false</span>,        <span class="comment">// mandatory</span></span><br><span class="line">		<span class="literal">false</span>,</span><br><span class="line">		amqp.Publishing&#123;</span><br><span class="line">			<span class="comment">// 持久性的发布，因为队列被声明为持久的，发布消息必须加上这个（可能不用），但消息还是可能会丢，如消息到缓存但MQ挂了来不及持久化。</span></span><br><span class="line">			DeliveryMode: amqp.Persistent,</span><br><span class="line">			ContentType:  <span class="string">"text/plain"</span>,</span><br><span class="line">			Body:         []<span class="keyword">byte</span>(body),</span><br><span class="line">		&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(<span class="string">"rabbitMQ 发送消息失败:"</span> + err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+
+<p><strong>二、消费者的创建以及监听</strong></p>
+ <figure class="highlight go"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br></pre></td><td class="code"><pre><span class="line"> </span><br><span class="line"><span class="comment">//InitRabbitMQConsumer 初始化消费者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Connection)</span> <span class="title">InitRabbitMQConsumer</span><span class="params">(isClose <span class="keyword">bool</span>, rabbitMQConfig config.Rabbit)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> isClose &#123;</span><br><span class="line">		c.CloseProcess &lt;- <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.Rabbit = rabbitMQConfig</span><br><span class="line">	url := <span class="string">"amqp://"</span> + c.Rabbit.Username + <span class="string">":"</span> + c.Rabbit.Password + <span class="string">"@"</span> + c.Rabbit.Host + <span class="string">":"</span> + cast.ToString(c.Rabbit.Port) + <span class="string">"/"</span></span><br><span class="line">	<span class="comment">//连接rabbit</span></span><br><span class="line">	conn, err := amqp.Dial(url)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbit连接异常:%s"</span>, err.Error()))</span><br><span class="line">		soelog.Logger.Info(<span class="string">"休息5S,开始重连rabbitMq消费者"</span>)</span><br><span class="line">		time.Sleep(<span class="number">5</span> * time.Second)</span><br><span class="line">		ants.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.InitRabbitMQConsumer(<span class="literal">false</span>, c.Rabbit) &#125;)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> conn.Close()</span><br><span class="line">	c.Conn = conn</span><br><span class="line">	err = c.CreateRabbitMQConsumer()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		soelog.Logger.Error(err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.URL = url</span><br><span class="line">	c.CloseProcess = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>, <span class="number">1</span>)</span><br><span class="line">	c.ConsumerReConnect()</span><br><span class="line">	soelog.Logger.Info(<span class="string">"结束消费者旧主进程"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Connection)</span> <span class="title">CreateRabbitMQConsumer</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(c.RabbitConsumerList) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"消费者信息不能为空"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> err error</span><br><span class="line">	<span class="keyword">for</span> _, value := <span class="keyword">range</span> c.RabbitConsumerList &#123;</span><br><span class="line">		<span class="comment">//创建一个通道</span></span><br><span class="line">		c.Ch, err = c.Conn.Channel()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(fmt.Sprintf(<span class="string">"MQ %s:%s"</span>, <span class="string">"打开Rabbit通道失败"</span>, err.Error()))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> err = c.Ch.ExchangeDeclare(</span><br><span class="line">			value.ExchangeName,</span><br><span class="line">			value.ExchangeType,</span><br><span class="line">			<span class="literal">true</span>,</span><br><span class="line">			<span class="literal">false</span>,</span><br><span class="line">			<span class="literal">false</span>,</span><br><span class="line">			<span class="literal">false</span>,</span><br><span class="line">			<span class="literal">nil</span>,</span><br><span class="line">		); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(fmt.Sprintf(<span class="string">"交换机初始化失败,交换机名称:%s,错误:%s"</span>, value.ExchangeName, err.Error()))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">var</span> queue amqp.Queue</span><br><span class="line">		queue, err = c.Ch.QueueDeclare(</span><br><span class="line">			value.QueueName,</span><br><span class="line">			<span class="literal">true</span>,</span><br><span class="line">			<span class="literal">false</span>,</span><br><span class="line">			<span class="literal">false</span>,</span><br><span class="line">			<span class="literal">false</span>,</span><br><span class="line">			<span class="literal">nil</span>,</span><br><span class="line">		)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(<span class="string">"队列初始化失败,队列名称:%s,错误: %s"</span>, value.QueueName, err.Error())</span><br><span class="line">		&#125;</span><br><span class="line">		soelog.Logger.Info(fmt.Sprintf(<span class="string">"declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)"</span>,</span><br><span class="line">			queue.Name, queue.Messages, queue.Consumers, queue.Name))</span><br><span class="line">		<span class="comment">// 绑定队列</span></span><br><span class="line">		err = c.Ch.QueueBind(value.QueueName, value.QueueName, value.ExchangeName, <span class="literal">false</span>, <span class="literal">nil</span>)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(fmt.Sprintf(<span class="string">"MQ %s:%s"</span>, <span class="string">"绑定队列失败"</span>, err.Error()))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//绑定消费者</span></span><br><span class="line">		messages := <span class="built_in">make</span>(&lt;-<span class="keyword">chan</span> amqp.Delivery)</span><br><span class="line">		messages, err = c.Ch.Consume(value.QueueName, <span class="string">""</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">nil</span>)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(fmt.Sprintf(<span class="string">"MQ %s:%s"</span>, <span class="string">"创建消费者失败"</span>, err.Error()))</span><br><span class="line">		&#125;</span><br><span class="line">		ants.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			c.ConsumeHandle(messages)</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//ConsumerReConnect 消费者重连</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Connection)</span> <span class="title">ConsumerReConnect</span><span class="params">()</span></span> &#123;</span><br><span class="line">closeTag:</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		c.ConnNotifyClose = c.Conn.NotifyClose(<span class="built_in">make</span>(<span class="keyword">chan</span> *amqp.Error))</span><br><span class="line">		c.ChNotifyClose = c.Ch.NotifyClose(<span class="built_in">make</span>(<span class="keyword">chan</span> *amqp.Error))</span><br><span class="line">		<span class="keyword">var</span> err *amqp.Error</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> err, _ = &lt;-c.ConnNotifyClose:</span><br><span class="line">		<span class="keyword">case</span> err, _ = &lt;-c.ChNotifyClose:</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbit消费者连接异常:%s"</span>, err.Error()))</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 判断连接是否关闭</span></span><br><span class="line">			<span class="keyword">if</span> !c.Conn.IsClosed() &#123;</span><br><span class="line">				<span class="keyword">if</span> err := c.Conn.Close(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">					soelog.Logger.Error(fmt.Sprintf(<span class="string">"rabbit连接关闭异常:%s"</span>, err.Error()))</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			_, isConnChannelOpen := &lt;-c.ConnNotifyClose</span><br><span class="line">			<span class="keyword">if</span> isConnChannelOpen &#123;</span><br><span class="line">				<span class="built_in">close</span>(c.ConnNotifyClose)</span><br><span class="line">			&#125;</span><br><span class="line">			ants.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				c.InitRabbitMQConsumer(<span class="literal">false</span>, c.Rabbit)</span><br><span class="line">			&#125;)</span><br><span class="line">			<span class="keyword">break</span> closeTag</span><br><span class="line">		<span class="keyword">case</span> &lt;-c.CloseProcess:</span><br><span class="line">			<span class="keyword">break</span> closeTag</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	soelog.Logger.Info(<span class="string">"结束消费者旧进程"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure></div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2021/10/15/Nacos%E5%8A%A8%E6%80%81%E6%9C%8D%E5%8A%A1%E9%85%8D%E7%BD%AE/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">Nacos动态服务配置</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2021/08/20/RabbitMQ-%E5%BB%B6%E8%BF%9F%E9%98%9F%E5%88%97/"><span class="paginator-prev__text">RabbitMQ 延迟队列</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav><!-- 判断是否启用aplayer--><!-- 播放器容器--><div class="aplayer" data-id="8059270200" data-server="theme.aplayer.server" data-type="theme.aplayer.type" data-fixed="theme.aplayer.fixed" data-order="theme.aplayer.order" data-preload="theme.aplayer.preload"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/meting@1.2.0/dist/Meting.min.js"></script></footer></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC81Mjc4Ny8yOTI2NA=="></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/images/icons/stun-logo.svg" alt="avatar"></div><p class="sidebar-ov-author__text">努力搬砖中 (快速切换文章 CTRL+→/←)</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/wz96cj" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="http://img.wz96cj.top/WXcode.jpg" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="http://img.wz96cj.top/QQcode.jpg" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">31</div><div class="sidebar-ov-state-item__name">归档</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">11</div><div class="sidebar-ov-state-item__name">分类</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">20</div><div class="sidebar-ov-state-item__name">标签</div></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2024</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span>Chen Jun</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon" data-popover-pos="up" data-popover="访问人数"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon" data-popover-pos="up" data-popover="浏览总量"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div><div><div> <a target="_blank" href="http://beian.miit.gov.cn" style="color:#f5f6f7"  rel="nofollow">浙ICP备20023281号</a></div></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><div class="search-mask"></div><div class="search-popup"><span class="search-close"></span><div class="search-input"><input placeholder="搜索文章（支持多关键词，请用空格分隔）"></div><div class="search-results"></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/canvas-nest.js@1.0.1/dist/canvas-nest.min.js" color="0,0,0" opacity="0.6" count="99" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script>function initSearch() {
+  var isXML = true;
+  var search_path = 'search.xml';
+
+  if (!search_path) {
+    search_path = 'search.xml';
+  } else if (/json$/i.test(search_path)) {
+    isXML = false;
+  }
+
+  var path = '/' + search_path;
+  $.ajax({
+    url: path,
+    dataType: isXML ? 'xml' : 'json',
+    async: true,
+    success: function (res) {
+      var datas = isXML ? $('entry', res).map(function () {
+        // 将 XML 转为 JSON
+        return {
+          title: $('title', this).text(),
+          content: $('content', this).text(),
+          url: $('url', this).text()
+        };
+      }).get() : res;
+      var $input = $('.search-input input');
+      var $result = $('.search-results');
+      // 搜索对象（标题、内容）的权重，影响显示顺序
+      var WEIGHT = { title: 100, content: 1 };
+      var searchPost = function () {
+        var searchText = $input.val().toLowerCase().trim();
+        // 根据空白字符分隔关键字
+        var keywords = searchText.split(/[\s]+/);
+        // 搜索结果
+        var matchPosts = [];
+
+        // 有多个关键字时，将原文字整个保存下来
+        if (keywords.length > 1) {
+          keywords.push(searchText);
+        }
+        // 防止未输入字符时搜索
+        if (searchText.length > 0) {
+          datas.forEach(function (data) {
+            var isMatch  = false;
+            // 没有标题的文章使用预设的 i18n 变量代替
+            var title = (data.title && data.title.trim()) || '[ 文章无标题 ]';
+            var titleLower = title && title.toLowerCase();
+            // 删除 HTML 标签 和 所有空白字符
+            var content = data.content && data.content.replace(/<[^>]+>/g, '');
+            var contentLower = content && content.toLowerCase();
+            // 删除重复的 /
+            var postURL = data.url && decodeURI(data.url).replace(/\/{2,}/g, '/');
+            // 标题中匹配到的关键词
+            var titleHitSlice = [];
+            // 内容中匹配到的关键词
+            var contentHitSlice = [];
+
+            keywords.forEach(function (keyword) {
+              /**
+              * 获取匹配的关键词的索引
+              * @param {String} keyword 要匹配的关键字
+              * @param {String} text 原文字
+              * @param {Boolean} caseSensitive 是否区分大小写
+              * @param {Number} weight 匹配对象的权重。权重大的优先显示
+              * @return {Array}
+              */
+              function getIndexByword (word, text, caseSensitive, weight) {
+                if (!word || !text) {
+                  return [];
+                };
+
+                var startIndex = 0; // 每次匹配的开始索引
+                var index = -1;     // 匹配到的索引值
+                var result = [];    // 匹配结果
+
+                if (!caseSensitive) {
+                  word = word.toLowerCase();
+                  text = text.toLowerCase();
+                }
+
+                while((index = text.indexOf(word, startIndex)) !== -1) {
+                  var hasMatch = false;
+                  // 索引位置相同的关键词，保留长度较长的
+                  titleHitSlice.forEach(function (hit) {
+                    if (hit.index === index && hit.word.length < word.length) {
+                      hit.word = word;
+                      hasMatch = true;
+                    }
+                  });
+                  startIndex = index + word.length;
+                  !hasMatch && result.push({ index: index, word: word, weight: weight });
+                }
+                return result;
+              }
+              titleHitSlice = titleHitSlice.concat(getIndexByword(keyword, titleLower, false, WEIGHT.title));
+              contentHitSlice = contentHitSlice.concat(getIndexByword(keyword, contentLower, false, WEIGHT.content));
+            });
+
+            var hitTitle = titleHitSlice.length;
+            var hitContent = contentHitSlice.length;
+
+            if (hitTitle > 0 || hitContent > 0) {
+              isMatch = true;
+            }
+            if (isMatch) {
+              ;[titleHitSlice, contentHitSlice].forEach(function (hit) {
+                // 按照匹配文字的索引的递增顺序排序
+                hit.sort(function (left, right) {
+                  return left.index - right.index;
+                });
+              });
+              /**
+              * 给文本中匹配到的关键词添加标记，从而进行高亮显示
+              * @param {String} text 原文本
+              * @param {Array} hitSlice 匹配项的索引信息
+              * @param {Number} start 开始索引
+              * @param {Number} end 结束索引
+              * @return {String}
+              */
+              function highlightKeyword (text, hitSlice, start, end) {
+                if (!text || !hitSlice || !hitSlice.length) {
+                  return;
+                }
+
+                var result = '';
+                var startIndex = start;
+                var endIndex = end;
+                hitSlice.forEach(function (hit) {
+                  if (hit.index < startIndex) {
+                    return;
+                  }
+
+                  var hitWordEnd = hit.index + hit.word.length;
+                  result += text.slice(startIndex, hit.index);
+                  result += '<b>' + text.slice(hit.index, hitWordEnd) + '</b>';
+                  startIndex = hitWordEnd;
+                });
+                result += text.slice(startIndex, endIndex);
+                return result;
+              }
+
+              var postData = {};
+              // 文章总的搜索权重
+              var postWeight = titleHitSlice.length * WEIGHT.title + contentHitSlice.length * WEIGHT.content;
+              // 标记匹配关键词后的标题
+              var postTitle = highlightKeyword(title, titleHitSlice, 0, title.length) || title;
+              // 标记匹配关键词后的内容
+              var postContent;
+              // 显示内容的长度
+              var SHOW_WORD_LENGTH = 200;
+              // 命中关键词前的字符显示长度
+              var SHOW_WORD_FRONT_LENGTH = 20;
+              var SHOW_WORD_END_LENGTH = SHOW_WORD_LENGTH - SHOW_WORD_FRONT_LENGTH;
+
+              // 截取匹配的第一个字符，前后共 200 个字符来显示
+              if (contentHitSlice.length > 0) {
+                var firstIndex = contentHitSlice[0].index;
+                var start = firstIndex > SHOW_WORD_FRONT_LENGTH ? firstIndex - SHOW_WORD_FRONT_LENGTH : 0;
+                var end = firstIndex + SHOW_WORD_END_LENGTH;
+                postContent = highlightKeyword(content, contentHitSlice, start, end);
+              } else { // 未匹配到内容，直接截取前 200 个字符来显示
+                postContent = content.slice(0, SHOW_WORD_LENGTH);
+              }
+              postData.title = postTitle;
+              postData.content = postContent;
+              postData.url = postURL;
+              postData.weight = postWeight;
+              matchPosts.push(postData);
+            }
+          });
+        }
+
+        var resultInnerHtml = '';
+        if (matchPosts.length) {
+          // 按权重递增的顺序排序，使权重大的优先显示
+          matchPosts.sort(function (left, right) {
+            return right.weight - left.weight;
+          });
+          resultInnerHtml += '<ul>';
+          matchPosts.forEach(function (post) {
+            resultInnerHtml += '<li><a class="search-results-title" href="' + post.url + '">';
+            resultInnerHtml += post.title;
+            resultInnerHtml += '</a><div class="search-results-content">';
+            resultInnerHtml += post.content;
+            resultInnerHtml += '</div></li>';
+          });
+          resultInnerHtml += '</ul>';
+        } else {
+          resultInnerHtml += '<div class="search-results-none"><i class="far fa-meh"></i></div>';
+        }
+        $result.html(resultInnerHtml);
+      };
+      $input.on('input', searchPost);
+      $input.on('keyup', function (e) {
+        if (e.keyCode === Stun.utils.codeToKeyCode('Enter')) {
+          searchPost();
+        }
+      });
+    }
+  });
+}
+
+function closeSearch () {
+  $('body').css({ overflow: 'auto' });
+  $('.search-popup').css({ display: 'none' });
+  $('.search-mask').css({ display: 'none' });
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+  Stun.utils.pjaxReloadLocalSearch = function () {
+    $('.header-nav-search').on('click', function (e) {
+      e.stopPropagation();
+      $('body').css('overflow', 'hidden');
+      $('.search-popup')
+        .velocity('stop')
+        .velocity('transition.expandIn', {
+          duration: 300,
+          complete: function () {
+            $('.search-popup input').focus();
+          }
+        });
+      $('.search-mask')
+        .velocity('stop')
+        .velocity('transition.fadeIn', {
+          duration: 300
+        });
+
+      initSearch();
+    });
+    $('.search-mask, .search-close').on('click', function () {
+      closeSearch();
+    });
+    $(document).on('keydown', function (e) {
+      // Escape <=> 27
+      if (e.keyCode === Stun.utils.codeToKeyCode('Escape')) {
+        closeSearch();
+      }
+    });
+  };
+
+  Stun.utils.pjaxReloadLocalSearch();
+}, false);</script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'http://wz96cj.github.io/2021/09/12/Golang-RabbitMQ%E8%BF%9E%E6%8E%A5%E4%BB%A5%E5%8F%8A%E9%87%8D%E8%BF%9E%E6%9C%BA%E5%88%B6/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script data-pjax="">function loadLivere () {
+  var d = document, s = d.createElement('script');
+
+  if (!d.getElementById('lv-container')) {
+    return;
+  }
+  if (typeof LivereTower === 'function') {
+    return;
+  }
+  s.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+  if (true) {
+    s.setAttribute('data-pjax-rm', '');
+  }
+  (d.head || d.body).appendChild(s);
+}
+
+if (true) {
+  loadLivere();
+} else {
+  window.addEventListener('DOMContentLoaded', loadLivere, false);
+}</script><script src="/js/utils.js?v=2.0.1"></script><script src="/js/stun-boot.js?v=2.0.1"></script><script src="/js/scroll.js?v=2.0.1"></script><script src="/js/header.js?v=2.0.1"></script><script src="/js/sidebar.js?v=2.0.1"></script></body></html>
